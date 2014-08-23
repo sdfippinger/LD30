@@ -1,0 +1,12 @@
+{
+    "version": "0.1",
+    "summary": "Front-end for Anonymous game using Elm",
+    "description": "Front-end for Anonymous game using Elm",
+    "license": "",
+    "exposed-modules": [],
+    "elm-version": "0.13.0",
+    "dependencies": {
+        "evancz/elm-html": "0.1.2"
+    },
+    "repository": "https://github.com/sdfippinger/LD30.git"
+}
