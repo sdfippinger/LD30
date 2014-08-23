@@ -1,57 +1,83 @@
 module Hack where
 
 import Debug
-import Window
-import Html
 import Html (..)
+import Html.Attributes (..)
 import Html.Events (..)
+import Html.Tags (..)
 import Html.Optimize.RefEq as Ref
-import Graphics.Input (..)
+
+import Maybe
+import Window
+
+import Graphics.Input
 import Graphics.Input as Input
 
-import Hack.AdminPage
-import Hack.AdminPage (..)
 import Hack.Model (..)
+import Hack.AdminPage as AdminPage
+import Hack.Browser as Browser
 
+newGame : Game
+newGame =
+  let target = "105.12.31.232" -- @TODO: Randomize this.
+  in  { state = Admin
+      , target = target
+      , browser = Browser.initialize
+      , adminPage = AdminPage.initialize
+      }
 
-newState : State
-newState = 
-  { devices = [{ip="192.168.0.50",forwardedPort=""}, {ip="192.168.0.24",forwardedPort=""}] 
-  , selectedDevice = {ip="",forwardedPort=""} }
+---- UPDATE ----
 
-step : Action -> State -> State
-step action state =
-    case action of
-      NoOp ->
-        state
-      UpdatePort ip forwardedPort ->
-        let update device = if device.ip == ip then { device | forwardedPort <- forwardedPort } else device
-        in { state | devices <- map update state.devices }
-      TelnetDevice device ->
-        { state | selectedDevice <- device }
+-- How we step the game forward for any given action
+step : Action -> Game -> Game
+step action game =
+  case action of
+    NoOp -> game
 
-state : Signal State
-state = foldp step newState actions.signal
+    Browser a -> { game | browser <- Browser.step a game.browser }
+    
+    AdminPage a -> {game | adminPage <- AdminPage.step a game.adminPage }
 
-main : Signal Element
-main = lift2 display state Window.dimensions
+---- VIEW ----
 
-display : State -> (Int,Int) -> Element
-display state (w,h) = 
-  Html.toElement 800 800 (view state)
-
-view : State -> Html
-view state = 
-  node "div"
-    [ "id" := "admin-console" ] []
-    [ node "div"
-        [ "id" := "devices" ]
-        []
-        [ Ref.lazy draw state.devices ]
-
-    --, node "div"
-    --    [ "id" := "console" ]
-    --    []
-    --    [ Ref.lazy drawConsole state.selectedDevice ]
+view : Game -> Html
+view game =
+  div
+    -- attributes
+    [ id "hack-elm"]
+    -- children
+    [ Browser.view 
+        game.browser
+        [ { url = game.target ++ ":8080"
+            , name = "Router"
+            , content = AdminPage.view game.adminPage}
+        ]
     ]
 
+---- INPUTS ----
+
+-- wire the entire game together
+main : Signal Element
+main = lift2 scene state Window.dimensions
+
+scene : Game -> (Int,Int) -> Element
+scene game (w,h) =
+  container w h midTop (toElement 550 h (view game))
+
+-- manage the state of our application over time
+state : Signal Game
+state = foldp step startingGame actions.signal
+
+startingGame : Game
+--startingGame = Maybe.maybe newGame identity getStorage
+startingGame = newGame
+
+-- actions from user input
+actions : Input.Input Action
+actions = Input.input NoOp
+
+---- interactions with localStorage to save app state
+--port getStorage : Maybe State
+
+--port setStorage : Signal State
+--port setStorage = state

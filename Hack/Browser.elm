@@ -29,16 +29,16 @@ import Graphics.Input as Input
 
 --- API ---
 
-initialize :  State
-initialize = emptyState
+initialize : State
+initialize =
+  { address = "about:blank"
+  }
 
 ---- MODEL ----
 
 -- The full application state of the browser.
 type State =
-  { tabs    : [Tab]
-  , address : String
-  , current : String
+  { address : String
   }
 
 type Tab =
@@ -56,9 +56,7 @@ newTab url content =
 
 emptyState : State
 emptyState =
-  { tabs = []
-  , current = ""
-  , address = "about:blank"
+  { address = "about:blank"
   }
 
 ---- UPDATE ----
@@ -78,53 +76,42 @@ step action state =
     NoOp -> state
 
     NewTab url content ->
-      { state | tabs <- state.tabs ++ [newTab url content]
-      }
+      state
 
     CloseTab url ->
-      { state | tabs <- filter (\tab -> tab.url /= url) state.tabs
-      }
+      state
 
     RefreshTab -> state -- @TODO
 
-    Anything a -> a state -- @see [2]
+    Anything action' -> action' state -- @see [2]
 
 
 ---- VIEW ----
-view : State -> Html
-view state =
+view : State -> [Tab] -> Html
+view state tabs =
   section
     -- attributes
     [ class "browselm" ]
     -- children
-    [ Ref.lazy2 controls state.current state.tabs
-    , Ref.lazy address state.address
-    , Ref.lazy2 tabList state.current state.tabs
+    [ Ref.lazy2 toolbar state.address tabs
+    , Ref.lazy2 tabList state.address tabs
     ]
 
 onEnter : Input.Handle a -> a -> Attribute
 onEnter handle value =
   on "keydown" (when (\k -> k.keyCode == 13) getKeyboardEvent) handle (always value)
 
-controls : String -> [Tab] -> Html
-controls current tabs =
+toolbar : String -> [Tab] -> Html
+toolbar url tabs =
   div
     -- attributes
-    [ ]
+    [ ] 
     -- children
     [ button [ ] [ text "<"]
     , button [ ] [ text ">"]
     , button [ ] [ text "^"]
     , button [ ] [ text "@"]
-    ]
-
-address : String -> Html
-address url =
-  div
-    -- attributes
-    [ ] 
-    -- children
-    [ label 
+    , label 
         -- attributes
         [ for "address" ]
         -- children
@@ -147,7 +134,7 @@ address url =
 tabList : String -> [Tab] -> Html
 tabList current tabs =
   div
-    [ id "tab-list" ]
+    [ id "tabs" ]
     (map tabContent (tabs |> withIndex))
 
 withIndex : [a] -> [(Int, a)]
@@ -181,6 +168,6 @@ tabContent (idx, tab) =
 
 ------ INPUTS ----
 
----- actions from user input
+-- actions from user input
 actions : Input.Input Action
 actions = Input.input NoOp

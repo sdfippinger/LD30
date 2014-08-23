@@ -1,14 +1,19 @@
 module Hack.Model where
 
-type State = 
-  { devices : [Device]
-  , selectedDevice : Device }
+import Hack.Browser as Browser
+import Hack.AdminPage as AdminPage
 
-type Device =
-  { ip : String
-  , forwardedPort: String }
+data State = Email | Admin | Camera | Win | Lose
+  
+-- The full application state of our game.
+type Game =
+  { state   : State
+  , target  : String
+  , browser : Browser.State
+  , adminPage: AdminPage.State
+  }
 
 data Action
   = NoOp
-  | UpdatePort String String
-  | TelnetDevice Device
+  | Browser Browser.Action
+  | AdminPage AdminPage.Action
