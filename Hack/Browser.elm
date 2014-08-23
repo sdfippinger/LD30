@@ -103,33 +103,53 @@ onEnter handle value =
 
 toolbar : String -> [Tab] -> Html
 toolbar url tabs =
-  div
-    -- attributes
-    [ ] 
-    -- children
-    [ button [ ] [ text "<"]
-    , button [ ] [ text ">"]
-    , button [ ] [ text "^"]
-    , button [ ] [ text "@"]
-    , label 
-        -- attributes
-        [ for "address" ]
-        -- children
-        [ text "Address" ]
-    , input
-        -- attributes
-        [ id "address" 
-        , type' "url"
-        , placeholder "http://www.example.com"
-        , autofocus True
-        , value url
-        , name "address"
-        , on "input" getValue actions.handle UpdateAddress
-        , onEnter actions.handle RefreshTab
-        ]
-        -- children
-        [ ]
-    ]
+  let buttonStyles = [ prop "border" "none"
+                     , prop "outline" "none"
+                     , prop "background-color" "transparent"
+                     , prop "float" "left"
+                     ]
+  in div
+      -- attributes
+      [ class "toolbar"
+      , style [ prop "background-color" "#e7e7e4"
+              , prop "padding" "0 0.5em"
+              ]
+      ]
+      -- children
+      [ button [ style buttonStyles ] [ text "<"]
+      , button [ style buttonStyles ] [ text ">"]
+      , button [ style buttonStyles ] [ text "^"]
+      , button [ style buttonStyles ] [ text "@"]
+      , label
+          -- attributes
+          [ for "address"
+          , style [ prop "float" "left" ] 
+          ]
+          -- children
+          [ text "Address" ]
+      , span
+          [ style [ prop "display" "block"
+                  , prop "overflow" "hidden"
+                  , prop "padding-right" "5px"
+                  , prop "padding-left" "10px"
+                  ]
+          ]
+          [ input
+              -- attributes
+              [ id "address" 
+              , type' "url"
+              , placeholder "http://www.example.com"
+              , autofocus True
+              , value url
+              , name "address"
+              , on "input" getValue actions.handle UpdateAddress
+              , onEnter actions.handle RefreshTab
+              , style [ prop "width" "100%"]
+              ]
+              -- children
+              [ ]
+          ]
+      ]
 
 tabList : String -> [Tab] -> Html
 tabList current tabs =
