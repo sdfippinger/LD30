@@ -1,4 +1,4 @@
-module Hack.Browser (initialize, step, view) where
+module Hack.Browser (initialize, step, view, actions, Action) where
 {-| A tabbed Browser emulator library implemented in Elm.
 
 This is supposed to be nested to a bigger module, exporting `Action`
@@ -27,6 +27,7 @@ import Window
 import Graphics.Input
 import Graphics.Input as Input
 
+import Debug (log, watch)
 --- API ---
 
 initialize : State
@@ -54,6 +55,13 @@ newTab url content =
   , content = content
   }
 
+emptyTab : Tab
+emptyTab =
+  { url = "about:blank"
+  , name = "+"
+  , content = div [ ] [ ]
+  }
+
 emptyState : State
 emptyState =
   { address = "about:blank"
@@ -63,6 +71,7 @@ emptyState =
 
 data Action
   = NoOp
+  | ChangeTab String
   | NewTab String Html
   | UpdateAddress String
   | CloseTab String
@@ -75,8 +84,14 @@ step action state =
   case action of
     NoOp -> state
 
+    ChangeTab url ->
+      {state | address <- url}
+
     NewTab url content ->
       state
+
+    UpdateAddress address ->
+      {state | address <- address}
 
     CloseTab url ->
       state
@@ -91,100 +106,107 @@ view : State -> [Tab] -> Html
 view state tabs =
   section
     -- attributes
-    [ class "browselm" ]
+    [ class "browselm", style [  prop "border" "1px solid #ccc" ] ]
     -- children
-    [ Ref.lazy2 toolbar state.address tabs
-    , Ref.lazy2 tabList state.address tabs
+    [ Ref.lazy2 tabsView state.address tabs
     ]
 
 onEnter : Input.Handle a -> a -> Attribute
 onEnter handle value =
   on "keydown" (when (\k -> k.keyCode == 13) getKeyboardEvent) handle (always value)
 
-toolbar : String -> [Tab] -> Html
-toolbar url tabs =
-  let buttonStyles = [ prop "border" "none"
-                     , prop "outline" "none"
-                     , prop "background-color" "transparent"
-                     , prop "float" "left"
-                     ]
-  in div
-      -- attributes
-      [ class "toolbar"
-      , style [ prop "background-color" "#e7e7e4"
-              , prop "padding" "0 0.5em"
-              ]
-      ]
-      -- children
-      [ button [ style buttonStyles ] [ text "<"]
-      , button [ style buttonStyles ] [ text ">"]
-      , button [ style buttonStyles ] [ text "^"]
-      , button [ style buttonStyles ] [ text "@"]
-      , label
-          -- attributes
-          [ for "address"
-          , style [ prop "float" "left" ] 
-          ]
-          -- children
-          [ text "Address" ]
-      , span
-          [ style [ prop "display" "block"
-                  , prop "overflow" "hidden"
-                  , prop "padding-right" "5px"
-                  , prop "padding-left" "10px"
-                  ]
-          ]
-          [ input
-              -- attributes
-              [ id "address" 
-              , type' "url"
-              , placeholder "http://www.example.com"
-              , autofocus True
-              , value url
-              , name "address"
-              , on "input" getValue actions.handle UpdateAddress
-              , onEnter actions.handle RefreshTab
-              , style [ prop "width" "100%"]
-              ]
-              -- children
-              [ ]
-          ]
-      ]
-
-tabList : String -> [Tab] -> Html
-tabList current tabs =
+toolbar : String -> Html
+toolbar url =
   div
-    [ id "tabs" ]
-    (map tabContent (tabs |> withIndex))
+    -- attributes
+    [ class "toolbar", style [ ] ]
+    -- children
+    [ button [ style [ prop "float" "left" ] ] [ text "←"]
+    , button [ style [ prop "float" "left" ] ] [ text "→"]
+    , button [ style [ prop "float" "left" ] ] [ text "^"]
+    , button [ style [ prop "float" "left" ] ] [ text "↻"]
+    , span
+        [ style [ prop "display" "block"
+                , prop "overflow" "hidden"
+                , prop "padding-right" "5px"
+                , prop "padding-left" "10px"
+                ]
+        ]
+        [ input
+            -- attributes
+            [ id "address" 
+            , type' "url"
+            , placeholder "http://www.example.com"
+            , autofocus True
+            , value url
+            , name "address"
+            , on "input" getValue actions.handle UpdateAddress
+            , onEnter actions.handle RefreshTab
+            , style [ prop "width" "100%"]
+            ]
+            -- children
+            [ ]
+        ]
+    ]
+
+tabsView : String -> [Tab] -> Html
+tabsView current tabs =
+  let tabs' = (tabs ++ [ emptyTab ]) |> withIndex
+  in
+    div
+      [ id "tabs"
+      , style [ 
+              ]
+      ]
+      (  concatMap (tabList current) tabs'
+      ++ [  div 
+              [ class "contents" ]
+              (map (tabContent current) tabs')
+          ]
+      )
 
 withIndex : [a] -> [(Int, a)]
 withIndex list = list |> zip [0..length list]
 
-tabContent : (Int, Tab) -> Html
-tabContent (idx, tab) = 
+tabList : String -> (Int, Tab) -> [Html]
+tabList current (idx, tab) =
+  [ input
+      -- attributes
+      [ type' "radio"
+      , id ("tab-" ++ show idx)
+      , checked (if current == tab.url then True else False)
+      , style [ prop "display" "none"] -- @TODO check current tab
+      ]
+      -- children
+      [ ]
+  , label
+      -- attributes
+      [ class "tab-label"
+      , for ("tab-" ++ show idx)
+      , style [ prop "display" "inline-block"
+              , prop "padding" "0px 15px"
+              , prop "border-left" "1px solid #ccc"
+              , prop "border-right" "1px solid #ccc"
+              ]
+      , onclick actions.handle (always (ChangeTab tab.url))
+      ]
+      -- children
+      [ text tab.name ]
+  ]
+
+tabContent : String -> (Int, Tab) -> Html
+tabContent current (idx, tab) =
   div
     -- attributes
-    [ class "tab" ]
+    [ class "content"
+    , style [ prop "display" (if current == tab.url then "block" else "none")
+            ] 
+    ]
     -- children
-    [ input
-        -- attributes
-        [ type' "radio"
-        , id ("tab-" ++ show idx)
-        , checked True
-        ]
-        -- children
-        [ ]
-    , label
-        -- attributes
-        [ for ("tab-" ++ show idx) ]
-        -- children
-        [ text tab.name ]
-    , div
-        -- attributes
-        [ class "content" ]
-        -- children
-        [ tab.content ]
-    ] 
+    [ Ref.lazy toolbar tab.url
+    , tab.content 
+    ]
+    --] 
 
 ------ INPUTS ----
 

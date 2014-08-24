@@ -1,6 +1,6 @@
 module Hack where
 
-import Debug
+import Debug (log, watch)
 import Html (..)
 import Html.Attributes (..)
 import Html.Events (..)
@@ -62,7 +62,7 @@ main = lift2 scene state Window.dimensions
 
 scene : Game -> (Int,Int) -> Element
 scene game (w,h) =
-  container w h midTop (toElement 550 h (view game))
+  container w h midTop (toElement w h (view game))
 
 -- manage the state of our application over time
 state : Signal Game
