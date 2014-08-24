@@ -1,4 +1,4 @@
-module Hack.Browser (initialize, step, view, actions, Action) where
+module Hack.Browser where
 {-| A tabbed Browser emulator library implemented in Elm.
 
 This is supposed to be nested to a bigger module, exporting `Action`
@@ -28,6 +28,7 @@ import Graphics.Input
 import Graphics.Input as Input
 
 import Debug (log, watch)
+
 --- API ---
 
 initialize : State
@@ -124,7 +125,11 @@ toolbar url =
     [ button [ style [ prop "float" "left" ] ] [ text "←"]
     , button [ style [ prop "float" "left" ] ] [ text "→"]
     , button [ style [ prop "float" "left" ] ] [ text "^"]
-    , button [ style [ prop "float" "left" ] ] [ text "↻"]
+    , button 
+        [ style [ prop "float" "left" ]
+        , onclick actions.handle (always RefreshTab)
+        ] 
+        [ text "↻"]
     , span
         [ style [ prop "display" "block"
                 , prop "overflow" "hidden"
@@ -174,7 +179,7 @@ tabList current (idx, tab) =
       -- attributes
       [ type' "radio"
       , id ("tab-" ++ show idx)
-      , checked (if current == tab.url then True else False)
+      , checked (if idx == 0 then True else False)
       , style [ prop "display" "none"] -- @TODO check current tab
       ]
       -- children
@@ -199,7 +204,7 @@ tabContent current (idx, tab) =
   div
     -- attributes
     [ class "content"
-    , style [ prop "display" (if current == tab.url then "block" else "none")
+    , style [ prop "display" (if idx == 0 then "block" else "none")
             ] 
     ]
     -- children

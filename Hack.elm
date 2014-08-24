@@ -16,6 +16,7 @@ import Graphics.Input as Input
 import Hack.Model (..)
 import Hack.AdminPage as AdminPage
 import Hack.Browser as Browser
+import Hack.Camera as Camera
 
 newGame : Game
 newGame =
@@ -24,6 +25,7 @@ newGame =
       , target = target
       , browser = Browser.initialize
       , adminPage = AdminPage.initialize
+      , cameraPage = Camera.initialize
       }
 
 ---- UPDATE ----
@@ -38,6 +40,8 @@ step action game =
     
     AdminPage a -> {game | adminPage <- AdminPage.step a game.adminPage }
 
+    CameraPage a -> {game | cameraPage <- Camera.step a game.cameraPage}
+
 ---- VIEW ----
 
 view : Game -> Html
@@ -48,9 +52,14 @@ view game =
     -- children
     [ Browser.view 
         game.browser
-        [ { url = game.target ++ ":8080"
+        [ { url = game.target
+          , name = "Camera 1"
+          , content = Camera.view game.cameraPage
+          }
+        , { url = game.target ++ ":8080"
             , name = "Router"
-            , content = AdminPage.view game.adminPage}
+            , content = AdminPage.view game.adminPage
+          }
         ]
     ]
 
@@ -66,7 +75,9 @@ scene game (w,h) =
 
 -- manage the state of our application over time
 state : Signal Game
-state = foldp step startingGame actions.signal
+state =
+  let browserActions = Browser.actions
+  in foldp step startingGame (merges [actions.signal])
 
 startingGame : Game
 --startingGame = Maybe.maybe newGame identity getStorage
